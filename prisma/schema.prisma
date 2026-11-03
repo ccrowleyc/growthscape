@@ -26,6 +26,8 @@ model Company {
   name        String       @unique
   memberships Membership[]
   owners      Owner[]
+  models      ValuationModel[]
+  valuations  Valuation[]
   createdAt   DateTime     @default(now())
 }
 
@@ -51,4 +53,53 @@ model Owner {
   email     String?
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model ValuationModel {
+  id          String      @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  formula     String
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  kpis        ModelKpi[]
+  valuations  Valuation[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([companyId, name])
+}
+
+/// A KPI a model's formula uses. kind: PRIMARY | COEFFICIENT. unit: CURRENCY | PERCENT | NUMBER
+model ModelKpi {
+  id        String         @id @default(cuid())
+  modelId   String
+  code      String
+  name      String
+  kind      String         @default("PRIMARY")
+  unit      String         @default("NUMBER")
+  sortOrder Int            @default(0)
+  model     ValuationModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@unique([modelId, code])
+}
+
+/// kind: CURRENT | TARGET. inputs: JSON map of KPI code -> number.
+/// savedValue is the result when last saved; the live value is always recomputed from the model.
+model Valuation {
+  id         String         @id @default(cuid())
+  companyId  String
+  modelId    String
+  name       String
+  kind       String         @default("CURRENT")
+  asOf       DateTime
+  inputs     String
+  savedValue Float?
+  notes      String?
+  company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  model      ValuationModel @relation(fields: [modelId], references: [id], onDelete: Restrict)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([companyId, name])
 }
