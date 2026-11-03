@@ -28,6 +28,8 @@ model Company {
   owners      Owner[]
   models      ValuationModel[]
   valuations  Valuation[]
+  initiatives StrategicInitiative[]
+  plans       ValueCreationPlan[]
   createdAt   DateTime     @default(now())
 }
 
@@ -51,8 +53,9 @@ model Owner {
   name      String
   title     String?
   email     String?
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  initiatives StrategicInitiative[]
+  createdAt   DateTime              @default(now())
 }
 
 model ValuationModel {
@@ -98,8 +101,82 @@ model Valuation {
   notes      String?
   company    Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   model      ValuationModel @relation(fields: [modelId], references: [id], onDelete: Restrict)
+  baselineOf ValueCreationPlan[] @relation("PlanBaseline")
+  targetOf   ValueCreationPlan[] @relation("PlanTarget")
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
   @@unique([companyId, name])
+}
+
+/// Quarters are strings like "2026-Q1". kpiCodes is a JSON array of KPI codes.
+model StrategicInitiative {
+  id           String                 @id @default(cuid())
+  companyId    String
+  name         String
+  description  String?
+  ownerId      String?
+  startQuarter String
+  endQuarter   String
+  kpiCodes     String                 @default("[]")
+  budget       Float?
+  company      Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  owner        Owner?                 @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  adjustments  InitiativeAdjustment[]
+  plans        PlanInitiative[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@unique([companyId, name])
+}
+
+/// Planned and actual change to one KPI in one quarter (additive; percent KPIs as decimals).
+model InitiativeAdjustment {
+  id           String              @id @default(cuid())
+  initiativeId String
+  quarter      String
+  kpiCode      String
+  planned      Float?
+  actual       Float?
+  initiative   StrategicInitiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@unique([initiativeId, quarter, kpiCode])
+}
+
+model ValueCreationPlan {
+  id                  String            @id @default(cuid())
+  companyId           String
+  name                String
+  description         String?
+  baselineValuationId String
+  targetValuationId   String
+  marginPct           Float             @default(0.05)
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  baseline            Valuation         @relation("PlanBaseline", fields: [baselineValuationId], references: [id], onDelete: Restrict)
+  target              Valuation         @relation("PlanTarget", fields: [targetValuationId], references: [id], onDelete: Restrict)
+  initiatives         PlanInitiative[]
+  otherAdjustments    PlanAdjustment[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([companyId, name])
+}
+
+model PlanInitiative {
+  planId       String
+  initiativeId String
+  plan         ValueCreationPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  initiative   StrategicInitiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@id([planId, initiativeId])
+}
+
+/// KPI changes not driven by an initiative, e.g. inflation reducing EBITDA.
+model PlanAdjustment {
+  id      String            @id @default(cuid())
+  planId  String
+  label   String
+  kpiCode String
+  amount  Float
+  plan    ValueCreationPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }

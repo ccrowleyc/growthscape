@@ -25,8 +25,8 @@ To seed a password instead, run `ADMIN_PASSWORD='…' npm run db:seed` on a fres
 | 1 | Login, company switcher, menus, profile | Done |
 | 2 | Companies, initiative Owners, Administration (sub-users, per-company access) | Done |
 | 3 | Valuation Models (formula engine) and Valuations | Done |
-| 4 | Strategic Initiatives and Value Creation Plans | Next |
-| 5 | Assessments (8 pillars) and Portfolio Views | Planned |
+| 4 | Strategic Initiatives and Value Creation Plans | Done |
+| 5 | Assessments (8 pillars) and Portfolio Views | Next |
 
 ## Before hosting publicly
 

@@ -14,11 +14,15 @@ const ICONS: Record<string, string> = {
   admin: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z",
 };
 
-const NAV = [
+type NavItem = { href: string; label: string; icon: string; adminOnly?: boolean; child?: boolean };
+
+const NAV: NavItem[] = [
   { href: "/", label: "Overview", icon: "home" },
   { href: "/assessments", label: "Assessments", icon: "assess" },
   { href: "/valuation-models", label: "Valuation Models", icon: "model" },
   { href: "/valuations", label: "Valuations", icon: "value" },
+  { href: "/plans", label: "Value Creation Plans", icon: "", child: true },
+  { href: "/initiatives", label: "Strategic Initiatives", icon: "", child: true },
   { href: "/portfolio", label: "Portfolio Views", icon: "portfolio" },
   { href: "/companies", label: "Companies", icon: "company" },
   { href: "/admin", label: "Administration", icon: "admin", adminOnly: true },
@@ -40,11 +44,11 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
               href={n.href}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 active ? "bg-brand-50 text-brand-700" : "text-ink-soft hover:bg-muted hover:text-ink"
-              }`}
+              } ${n.child ? "ml-[30px] py-1.5 text-[13px]" : ""}`}
             >
-              <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {!n.child && <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d={ICONS[n.icon]} />
-              </svg>
+              </svg>}
               {n.label}
             </Link>
           );
