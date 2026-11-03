@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String?
+  isAdmin      Boolean      @default(false)
+  createdById  String?
+  createdBy    User?        @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers User[]       @relation("CreatedUsers")
+  memberships  Membership[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Company {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  memberships Membership[]
+  owners      Owner[]
+  createdAt   DateTime     @default(now())
+}
+
+/// A user's access to a company. role: ADMIN | MEMBER
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  role      String   @default("MEMBER")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
+}
+
+/// People who can own Strategic Initiatives within a company
+model Owner {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  title     String?
+  email     String?
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}

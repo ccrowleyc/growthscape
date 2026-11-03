@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GrowthScape
 
-## Getting Started
+Value creation planning and valuation for portfolio companies.
 
-First, run the development server:
+Stack: Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma · SQLite (swap to Postgres for hosting).
+
+## Run it locally
+
+Requires Node 20+.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env      # then set SESSION_SECRET to a long random string
+npm run setup             # creates the database and seeds ABC, XYZ and ACME Inc.
+npm run dev               # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sign in as `crowley.conor@gmail.com`. On the first sign-in you'll be asked to choose a password.
+To seed a password instead, run `ADMIN_PASSWORD='…' npm run db:seed` on a fresh database.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Phase | Area | Status |
+|---|---|---|
+| 1 | Login, company switcher, menus, profile | Done |
+| 2 | Companies, initiative Owners, Administration (sub-users, per-company access) | Done |
+| 3 | Valuation Models (formula engine) and Valuations | Next |
+| 4 | Strategic Initiatives and Value Creation Plans | Planned |
+| 5 | Assessments (8 pillars) and Portfolio Views | Planned |
 
-## Learn More
+## Before hosting publicly
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Set a strong `SESSION_SECRET`.
+- Set the admin password (the first-login setup page is only safe while the app is private).
+- Move from SQLite to Postgres (`provider = "postgresql"` in `prisma/schema.prisma`).
