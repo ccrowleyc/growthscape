@@ -5,18 +5,24 @@ const prisma = new PrismaClient();
 
 const COMPANIES = ["ABC Inc.", "XYZ Inc.", "ACME Inc."];
 const ADMIN_EMAIL = "crowley.conor@gmail.com";
+const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
 
 async function main() {
-  // Password is never hard-coded. Set ADMIN_PASSWORD to seed one,
-  // otherwise the admin chooses it on first login.
-  const pw = process.env.ADMIN_PASSWORD;
+  // The password is never hard-coded. In production ADMIN_PASSWORD is required;
+  // locally, leaving it empty lets the admin choose one on first sign-in.
+  const pw = process.env.ADMIN_PASSWORD?.trim();
+  if (isProduction && (!pw || pw.length < 10)) {
+    throw new Error("Set ADMIN_PASSWORD (10+ characters) before deploying.");
+  }
   const passwordHash = pw ? await bcrypt.hash(pw, 12) : null;
 
-  const admin = await prisma.user.upsert({
-    where: { email: ADMIN_EMAIL },
-    update: {},
-    create: { email: ADMIN_EMAIL, name: "Conor Crowley", isAdmin: true, passwordHash },
-  });
+  const existing = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
+  const admin = existing
+    ? // Only fill in a password if the admin has never had one; never overwrite a changed password.
+      existing.passwordHash || !passwordHash
+      ? existing
+      : await prisma.user.update({ where: { id: existing.id }, data: { passwordHash } })
+    : await prisma.user.create({ data: { email: ADMIN_EMAIL, name: "Conor Crowley", isAdmin: true, passwordHash } });
 
   for (const name of COMPANIES) {
     const company = await prisma.company.upsert({ where: { name }, update: {}, create: { name } });
@@ -26,7 +32,12 @@ async function main() {
       create: { userId: admin.id, companyId: company.id, role: "ADMIN" },
     });
   }
-  console.log(`Seeded ${COMPANIES.length} companies and admin ${ADMIN_EMAIL}`);
+  console.log(`Seed checked: ${COMPANIES.length} companies and admin ${ADMIN_EMAIL}`);
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
