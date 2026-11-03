@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { clearSession, requireUser, setSession } from "@/lib/auth";
+import { passwordSetupEnabled } from "@/lib/config";
 
 export type FormState = { error?: string } | undefined;
 
@@ -23,7 +24,10 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
   if (!email) return { error: "Enter your email address." };
 
   const user = await db.user.findUnique({ where: { email } });
-  if (user && !user.passwordHash) redirect(`/login/setup?email=${encodeURIComponent(email)}`);
+  if (user && !user.passwordHash) {
+    if (!passwordSetupEnabled) return { error: "This account doesn't have a password yet. Ask an administrator to set one." };
+    redirect(`/login/setup?email=${encodeURIComponent(email)}`);
+  }
   if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
     return { error: "Email or password is incorrect." };
   }
@@ -31,6 +35,7 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
 }
 
 export async function setupPassword(_: FormState, form: FormData): Promise<FormState> {
+  if (!passwordSetupEnabled) return { error: "Password setup is turned off." };
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const password = String(form.get("password") ?? "");
   const confirm = String(form.get("confirm") ?? "");

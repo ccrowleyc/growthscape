@@ -2,21 +2,31 @@
 
 Value creation planning and valuation for portfolio companies.
 
-Stack: Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma · SQLite (swap to Postgres for hosting).
+Stack: Next.js 15 (App Router, server actions) · TypeScript · Tailwind CSS 4 · Prisma · PostgreSQL.
 
 ## Run it locally
 
-Requires Node 20+.
+Requires Node 20+ and Docker (for the local database).
 
 ```bash
 npm install
-cp .env.example .env      # then set SESSION_SECRET to a long random string
-npm run setup             # creates the database and seeds ABC, XYZ and ACME Inc.
+cp .env.example .env      # set SESSION_SECRET; ADMIN_PASSWORD is optional locally
+docker compose up -d      # starts Postgres on localhost:5432
+npm run setup             # creates tables and seeds ABC, XYZ and ACME Inc.
 npm run dev               # http://localhost:3000
 ```
 
-Sign in as `crowley.conor@gmail.com`. On the first sign-in you'll be asked to choose a password.
-To seed a password instead, run `ADMIN_PASSWORD='…' npm run db:seed` on a fresh database.
+Sign in as `crowley.conor@gmail.com`. Locally, if `ADMIN_PASSWORD` was empty when seeding, you choose a password on first sign-in.
+
+## Hosting (Vercel + Neon Postgres)
+
+1. Import this repo into Vercel.
+2. In the Vercel project, add a Neon Postgres database (Storage → Create → Neon). This sets `DATABASE_URL`.
+3. Add environment variables: `SESSION_SECRET` (32+ random characters) and `ADMIN_PASSWORD` (10+ characters).
+4. Deploy. The build runs database migrations and the seed, then builds the app.
+
+In production the first-sign-in password page is turned off, and the build fails if `ADMIN_PASSWORD` is missing.
+The seed never overwrites a password that has already been set, so you can change yours from your profile afterwards.
 
 ## Status
 
@@ -32,18 +42,3 @@ To seed a password instead, run `ADMIN_PASSWORD='…' npm run db:seed` on a fres
 
 - Live data-source connections for Assessments (HubSpot, Salesforce, Xero, QuickBooks, Stripe are listed as "coming soon"; manual entry and CSV import work today).
 - Currency is fixed to USD.
-
-## Before hosting publicly
-
-- Set a strong `SESSION_SECRET`.
-- Set the admin password (the first-login setup page is only safe while the app is private).
-- Move from SQLite to Postgres (`provider = "postgresql"` in `prisma/schema.prisma`).
-
-## Formula syntax (Valuation Models)
-
-KPI codes (e.g. `MRR`, `EBITDA_GROWTH`), numbers and percentages (`15%`), operators `+ - * / ^`,
-comparisons `> >= < <= = !=`, and functions `AVG MIN MAX SUM ABS ROUND IF AND OR NOT`.
-Formulas are parsed safely (no `eval`). Tests: `npm test`.
-
-Valuations always show the value from their model's current formula. If the model changed since a valuation was saved,
-it's flagged and shows the previously saved value until you re-save it.
