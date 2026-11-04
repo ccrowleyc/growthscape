@@ -8,3 +8,8 @@ export async function loadModels(companyId: string) {
   });
   return models.map((m) => ({ id: m.id, name: m.name, formula: m.formula, kpis: m.kpis.map(({ code, name, kind, unit }) => ({ code, name, kind, unit })) }));
 }
+
+export async function currentKpiValues(companyId: string) {
+  const kpis = await db.companyKpi.findMany({ where: { companyId }, select: { code: true, currentValue: true } });
+  return Object.fromEntries(kpis.map((k) => [k.code, k.currentValue]));
+}

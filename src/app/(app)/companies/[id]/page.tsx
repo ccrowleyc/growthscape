@@ -1,61 +1,32 @@
-import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
-import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, EmptyState, Field, Input, PageHeader } from "@/components/ui";
-import { addOwner, removeOwner } from "../actions";
+import Link from "next/link";
+import { requireCompanyAccess } from "@/lib/company-access";
+import { Card } from "@/components/ui";
+import { setupStatus } from "./setup-status";
 
-export default async function CompanyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CompanySetupOverview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { user } = await requireUser();
-  const m = await db.membership.findUnique({ where: { userId_companyId: { userId: user.id, companyId: id } }, include: { company: true } });
-  if (!m) notFound();
-  const canEdit = user.isAdmin || m.role === "ADMIN";
-  const owners = await db.owner.findMany({ where: { companyId: id }, orderBy: { name: "asc" } });
-
+  await requireCompanyAccess(id);
+  const { counts, done } = await setupStatus(id);
+  const steps = [
+    { key: "kpis", title: "Choose KPIs", body: counts.kpis ? `${counts.kpis} KPIs across the eight pillars` : "Pick the KPIs that best fit this company across the eight growth pillars." },
+    { key: "data-sources", title: "Connect data sources", body: counts.kpis ? `${counts.withValues} of ${counts.kpis} KPIs have a current value` : "Choose where each KPI's data comes from, such as HubSpot, Salesforce or Xero." },
+    { key: "models", title: "Create valuation models", body: counts.models ? `${counts.models} model${counts.models === 1 ? "" : "s"}` : "Turn the company's KPIs into a valuation formula." },
+    { key: "owners", title: "Add initiative owners", body: counts.owners ? `${counts.owners} owner${counts.owners === 1 ? "" : "s"}` : "The people who can own strategic initiatives." },
+  ];
   return (
-    <>
-      <PageHeader title={m.company.name} description="Owners are the people who can be assigned Strategic Initiatives." />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {owners.length === 0 ? (
-            <EmptyState title="No owners yet" body="Add the people responsible for delivering strategic initiatives, such as your CRO or COO." />
-          ) : (
-            <Card className="divide-y divide-line">
-              {owners.map((o) => (
-                <div key={o.id} className="flex items-center justify-between px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-muted text-xs font-semibold text-ink-soft">
-                      {o.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium">{o.name}</p>
-                      <p className="text-xs text-ink-soft">{[o.title, o.email].filter(Boolean).join(" · ") || "—"}</p>
-                    </div>
-                  </div>
-                  {canEdit && (
-                    <form action={removeOwner}>
-                      <input type="hidden" name="id" value={o.id} />
-                      <Button variant="danger" className="text-xs">Remove</Button>
-                    </form>
-                  )}
-                </div>
-              ))}
-            </Card>
-          )}
-        </div>
-        {canEdit && (
-          <Card className="h-fit p-6">
-            <h2 className="mb-5 text-base font-semibold">Add owner</h2>
-            <ActionForm action={addOwner} submit="Add owner">
-              <input type="hidden" name="companyId" value={id} />
-              <Field label="Name"><Input name="name" required /></Field>
-              <Field label="Title"><Input name="title" placeholder="e.g. Chief Revenue Officer" /></Field>
-              <Field label="Email"><Input name="email" type="email" /></Field>
-            </ActionForm>
+    <div className="grid gap-4 md:grid-cols-2">
+      {steps.map((s, i) => (
+        <Link key={s.key} href={`/companies/${id}/${s.key}`}>
+          <Card className="h-full p-5 transition hover:border-brand-500 hover:shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${done[s.key as keyof typeof done] ? "bg-brand-600 text-white" : "bg-muted text-ink-soft"}`}>
+                {done[s.key as keyof typeof done] ? "✓" : i + 1}
+              </span>
+              <div><h3 className="text-sm font-semibold">{s.title}</h3><p className="mt-0.5 text-sm text-ink-soft">{s.body}</p></div>
+            </div>
           </Card>
-        )}
-      </div>
-    </>
+        </Link>
+      ))}
+    </div>
   );
 }

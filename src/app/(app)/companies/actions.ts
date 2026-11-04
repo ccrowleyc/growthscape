@@ -22,7 +22,7 @@ export async function createCompany(_: ActionState, form: FormData): Promise<Act
     data: { name, memberships: { create: { userId: user.id, role: "ADMIN" } } },
   });
   if (form.get("switch") === "on") await setSession(user.id, company.id);
-  redirect(`/companies/${company.id}`);
+  redirect(`/companies/${company.id}/kpis`);
 }
 
 export async function addOwner(_: ActionState, form: FormData): Promise<ActionState> {
@@ -33,7 +33,7 @@ export async function addOwner(_: ActionState, form: FormData): Promise<ActionSt
   await db.owner.create({
     data: { companyId, name, title: String(form.get("title") ?? "").trim() || null, email: String(form.get("email") ?? "").trim() || null },
   });
-  revalidatePath(`/companies/${companyId}`);
+  revalidatePath(`/companies/${companyId}`, "layout");
   return { ok: `${name} added.` };
 }
 
@@ -43,5 +43,5 @@ export async function removeOwner(form: FormData) {
   if (!owner) return;
   await requireCompanyAdmin(owner.companyId);
   await db.owner.delete({ where: { id } });
-  revalidatePath(`/companies/${owner.companyId}`);
+  revalidatePath(`/companies/${owner.companyId}`, "layout");
 }

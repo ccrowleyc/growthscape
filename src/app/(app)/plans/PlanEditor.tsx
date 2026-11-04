@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { Button, Card, ErrorText, Field, Input } from "@/components/ui";
 import { money } from "@/lib/format";
 import { savePlan } from "./actions";
+import { UnitInput } from "@/components/UnitInput";
 
 type Val = { id: string; name: string; kind: string; value: number | null; kpis: { code: string; name: string; unit: string }[] };
 type Init = { id: string; name: string; owner: string | null };
@@ -42,7 +43,7 @@ export function PlanEditor({ valuations, initiatives, initial }: { valuations: V
           <Field label="Starting valuation" hint="The KPIs your initiatives build from.">
             <select value={baseline} onChange={(e) => setBaseline(e.target.value)} className={SELECT}>
               <option value="">Choose…</option>
-              <optgroup label="Current">{currents.map(opt)}</optgroup>
+              <optgroup label="Point-in-time">{currents.map(opt)}</optgroup>
               <optgroup label="Target">{targets.map(opt)}</optgroup>
             </select>
           </Field>
@@ -50,7 +51,7 @@ export function PlanEditor({ valuations, initiatives, initial }: { valuations: V
             <select value={target} onChange={(e) => setTarget(e.target.value)} className={SELECT}>
               <option value="">Choose…</option>
               <optgroup label="Target">{targets.map(opt)}</optgroup>
-              <optgroup label="Current">{currents.map(opt)}</optgroup>
+              <optgroup label="Point-in-time">{currents.map(opt)}</optgroup>
             </select>
           </Field>
           <Field label="Margin" hint="How close the plan must get to the target to count as on track.">
@@ -85,21 +86,15 @@ export function PlanEditor({ valuations, initiatives, initial }: { valuations: V
         <div className="space-y-2">
           {other.map((o, i) => {
             const unit = kpis.find((k) => k.code === o.kpiCode)?.unit;
-            const pct = unit === "PERCENT";
             const upd = (p: Partial<Other>) => setOther(other.map((x, j) => (j === i ? { ...x, ...p } : x)));
             return (
-              <div key={i} className="grid grid-cols-[1fr_1fr_140px_auto] gap-2">
+              <div key={i} className="grid grid-cols-[1fr_1fr_170px_auto] gap-2">
                 <Input value={o.label} onChange={(e) => upd({ label: e.target.value })} placeholder="e.g. Inflation on costs" />
                 <select value={o.kpiCode} onChange={(e) => upd({ kpiCode: e.target.value })} className={SELECT}>
                   <option value="">KPI…</option>
                   {kpis.map((k) => <option key={k.code} value={k.code}>{k.name}</option>)}
                 </select>
-                <div className="flex rounded-md border border-line bg-surface">
-                  <input type="number" step="any" value={o.amount === null ? "" : pct ? +(o.amount * 100).toFixed(6) : o.amount}
-                    onChange={(e) => upd({ amount: e.target.value === "" ? null : pct ? Number(e.target.value) / 100 : Number(e.target.value) })}
-                    className="w-full min-w-0 bg-transparent px-3 py-2 text-right text-sm focus:outline-none" />
-                  {pct && <span className="grid place-items-center pr-2 text-xs text-ink-faint">pts</span>}
-                </div>
+                <UnitInput value={o.amount} unit={unit ?? "NUMBER"} pctSuffix="pts" ariaLabel={`${o.label || "Adjustment"} amount`} onChange={(n) => upd({ amount: n })} />
                 <button type="button" aria-label="Remove adjustment" onClick={() => setOther(other.filter((_, j) => j !== i))} className="w-8 rounded-md text-ink-faint hover:bg-red-50 hover:text-red-600">✕</button>
               </div>
             );

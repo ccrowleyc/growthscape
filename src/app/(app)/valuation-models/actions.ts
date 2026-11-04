@@ -13,16 +13,7 @@ const Payload = z.object({
   name: z.string().trim().min(1, "Model name is required."),
   description: z.string().trim().optional(),
   formula: z.string().trim().min(1, "Formula is required."),
-  kpis: z
-    .array(
-      z.object({
-        code: z.string().trim().regex(/^[A-Z_][A-Z0-9_]*$/, "KPI codes use capital letters, digits and underscores."),
-        name: z.string().trim().min(1, "Every KPI needs a name."),
-        kind: z.enum(["PRIMARY", "COEFFICIENT"]),
-        unit: z.enum(["CURRENCY", "PERCENT", "NUMBER"]),
-      }),
-    )
-    .min(1, "Add at least one KPI."),
+  kpis: z.array(z.object({ code: z.string(), kind: z.enum(["PRIMARY", "COEFFICIENT"]) })).min(1, "Add at least one KPI."),
 });
 
 export async function saveModel(_: ActionState, form: FormData): Promise<ActionState> {
@@ -43,7 +34,11 @@ export async function saveModel(_: ActionState, form: FormData): Promise<ActionS
   const clash = await db.valuationModel.findFirst({ where: { companyId: company.id, name: data.name, NOT: data.id ? { id: data.id } : undefined } });
   if (clash) return { error: "A model with that name already exists." };
 
-  const kpis = data.kpis.map((k, i) => ({ ...k, sortOrder: i }));
+  // Models may only use KPIs that are set up for the company.
+  const companyKpis = new Map((await db.companyKpi.findMany({ where: { companyId: company.id } })).map((k) => [k.code, k]));
+  const unknown = data.kpis.filter((k) => !companyKpis.has(k.code));
+  if (unknown.length) return { error: `Not a KPI for this company: ${unknown.map((k) => k.code).join(", ")}` };
+  const kpis = data.kpis.map((k, i) => ({ code: k.code, kind: k.kind, name: companyKpis.get(k.code)!.name, unit: companyKpis.get(k.code)!.unit, sortOrder: i }));
   let id = data.id;
   if (id) {
     const existing = await db.valuationModel.findFirst({ where: { id, companyId: company.id } });

@@ -1,16 +1,16 @@
-export type KpiDraft = { code: string; name: string; kind: "PRIMARY" | "COEFFICIENT"; unit: "CURRENCY" | "PERCENT" | "NUMBER" };
+export type ModelKpiDraft = { code: string; kind: "PRIMARY" | "COEFFICIENT" };
 
-/** The example model from the GrowthScape spec. */
-export const EXAMPLE_MODEL: { kpis: KpiDraft[]; formula: string } = {
+/** The example model from the GrowthScape spec. Its KPI codes match the KPI library. */
+export const EXAMPLE_MODEL: { kpis: ModelKpiDraft[]; formula: string } = {
   kpis: [
-    { code: "MRR", name: "Monthly recurring revenue", kind: "PRIMARY", unit: "CURRENCY" },
-    { code: "EBITDA", name: "EBITDA", kind: "PRIMARY", unit: "CURRENCY" },
-    { code: "EBITDA_GROWTH", name: "EBITDA annual growth rate", kind: "COEFFICIENT", unit: "PERCENT" },
-    { code: "ARR_GROWTH", name: "ARR annual growth rate", kind: "COEFFICIENT", unit: "PERCENT" },
-    { code: "NRR", name: "Net revenue retention", kind: "COEFFICIENT", unit: "PERCENT" },
-    { code: "NPS", name: "Net promoter score", kind: "COEFFICIENT", unit: "NUMBER" },
-    { code: "CUSTOMER_COUNT", name: "Customer count", kind: "COEFFICIENT", unit: "NUMBER" },
-    { code: "LARGEST_CUSTOMER_PCT", name: "Largest customer % of revenue", kind: "COEFFICIENT", unit: "PERCENT" },
+    { code: "MRR", kind: "PRIMARY" },
+    { code: "EBITDA", kind: "PRIMARY" },
+    { code: "EBITDA_GROWTH", kind: "COEFFICIENT" },
+    { code: "ARR_GROWTH", kind: "COEFFICIENT" },
+    { code: "NRR", kind: "COEFFICIENT" },
+    { code: "NPS", kind: "COEFFICIENT" },
+    { code: "CUSTOMER_COUNT", kind: "COEFFICIENT" },
+    { code: "LARGEST_CUSTOMER_PCT", kind: "COEFFICIENT" },
   ],
   formula: [
     "AVG(MRR * 12 * 30, EBITDA * 15)",
@@ -21,7 +21,3 @@ export const EXAMPLE_MODEL: { kpis: KpiDraft[]; formula: string } = {
     "* IF(OR(CUSTOMER_COUNT < 30, LARGEST_CUSTOMER_PCT > 15%), 0.9, 1)",
   ].join("\n"),
 };
-
-export function toCode(name: string) {
-  return name.toUpperCase().replace(/%/g, "PCT").replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").replace(/^(\d)/, "K_$1").slice(0, 40);
-}

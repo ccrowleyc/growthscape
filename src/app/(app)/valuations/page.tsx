@@ -4,6 +4,7 @@ import { requireCompany } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { liveValue } from "@/lib/valuation";
 import { Badge, Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
+import { ValuationChart } from "@/components/ValuationChart";
 
 export default async function ValuationsPage() {
   const { company } = await requireCompany();
@@ -27,16 +28,16 @@ export default async function ValuationsPage() {
 
   return (
     <>
-      <PageHeader title="Valuations" description={`Current and target valuations for ${company.name.replace(/\.$/, "")}.`} actions={<LinkButton href="/valuations/new">New valuation</LinkButton>} />
+      <PageHeader title="Valuations" description={`Point-in-time and target valuations for ${company.name.replace(/\.$/, "")}.`} actions={<LinkButton href="/valuations/new">New valuation</LinkButton>} />
       {rows.length === 0 ? (
-        <EmptyState title="No valuations yet" body="Start with today's valuation, then add a target valuation for your plan." action={<LinkButton href="/valuations/new">Create a valuation</LinkButton>} />
+        <EmptyState title="No valuations yet" body="Start with a point-in-time valuation, then add a target valuation for your plan." action={<LinkButton href="/valuations/new">Create a valuation</LinkButton>} />
       ) : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
             {[
-              { label: "Latest current", v: current?.live.value, sub: current?.name },
+              { label: "Latest point-in-time", v: current?.live.value, sub: current?.name },
               { label: "Latest target", v: target?.live.value, sub: target?.name },
-              { label: "Value to create", v: gap, sub: gap != null && current?.live.value ? `${((gap / current.live.value) * 100).toFixed(0)}% uplift` : "Needs a current and a target" },
+              { label: "Value to create", v: gap, sub: gap != null && current?.live.value ? `${((gap / current.live.value) * 100).toFixed(0)}% uplift` : "Needs a point-in-time and a target valuation" },
             ].map((s) => (
               <Card key={s.label} className="p-5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{s.label}</p>
@@ -45,6 +46,10 @@ export default async function ValuationsPage() {
               </Card>
             ))}
           </div>
+          <Card className="mb-6 p-6">
+            <h2 className="mb-4 text-base font-semibold">Valuation over time</h2>
+            <ValuationChart points={rows.filter((r) => r.live.value !== null).map((r) => ({ id: r.id, name: r.name, date: r.asOf, value: r.live.value!, kind: r.kind }))} />
+          </Card>
           <Card className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="border-b border-line bg-muted/50 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">
@@ -54,7 +59,7 @@ export default async function ValuationsPage() {
                 {rows.map((v) => (
                   <tr key={v.id} className="hover:bg-muted/40">
                     <td className="px-5 py-3.5"><Link href={`/valuations/${v.id}`} className="font-medium hover:text-brand-700">{v.name}</Link></td>
-                    <td className="px-5 py-3.5"><Badge tone={v.kind === "TARGET" ? "brand" : "neutral"}>{v.kind === "TARGET" ? "Target" : "Current"}</Badge></td>
+                    <td className="px-5 py-3.5"><Badge tone={v.kind === "TARGET" ? "brand" : "neutral"}>{v.kind === "TARGET" ? "Target" : "Point-in-time"}</Badge></td>
                     <td className="px-5 py-3.5 text-ink-soft">{v.asOf.toISOString().slice(0, 10)}</td>
                     <td className="px-5 py-3.5 text-ink-soft">{v.model.name}</td>
                     <td className="px-5 py-3.5 text-right font-medium tabular-nums">

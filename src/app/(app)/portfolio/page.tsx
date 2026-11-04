@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireCompany } from "@/lib/auth";
-import { analyse as analyseAssessment, type AKpi } from "@/lib/assessment";
+import { analyse as analyseKpis } from "@/lib/kpis";
 import { money } from "@/lib/format";
 import { initiativeStatus } from "@/lib/initiative-status";
 import { analyse as analysePlan, loadPlans } from "@/lib/plan-load";
@@ -17,11 +17,11 @@ export default async function PortfolioPage() {
 
   const rows = await Promise.all(
     memberships.map(async ({ company }) => {
-      const [vals, plans, inits, assessment] = await Promise.all([
+      const [vals, plans, inits, kpis] = await Promise.all([
         db.valuation.findMany({ where: { companyId: company.id }, include: { model: true }, orderBy: { asOf: "asc" } }),
         loadPlans(company.id),
         db.strategicInitiative.findMany({ where: { companyId: company.id }, include: { adjustments: true } }),
-        db.assessment.findFirst({ where: { companyId: company.id }, include: { kpis: true }, orderBy: { asOf: "desc" } }),
+        db.companyKpi.findMany({ where: { companyId: company.id } }),
       ]);
       const current = vals.filter((v) => v.kind === "CURRENT").at(-1);
       const target = vals.filter((v) => v.kind === "TARGET").at(-1);
@@ -29,7 +29,7 @@ export default async function PortfolioPage() {
       const tv = target ? liveValue(target).value : null;
       const plan = plans[0] ? { p: plans[0], a: analysePlan(plans[0]) } : null;
       const behind = inits.filter((i) => initiativeStatus(i.adjustments).behind > 0).length;
-      const score = assessment ? analyseAssessment(assessment.kpis as AKpi[]) : null;
+      const score = kpis.length ? analyseKpis(kpis) : null;
       return { company, cv, tv, plan, inits: inits.length, behind, score };
     }),
   );
@@ -43,7 +43,7 @@ export default async function PortfolioPage() {
       <PageHeader title="Portfolio Views" description="Valuations, plans and performance across every company you can access." />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
-          ["Portfolio value today", money(totalCurrent), `${rows.filter((r) => r.cv !== null).length} of ${rows.length} companies valued`],
+          ["Portfolio value today", money(totalCurrent), `Latest point-in-time valuations · ${rows.filter((r) => r.cv !== null).length} of ${rows.length} companies`],
           ["Portfolio target", money(totalTarget), `${rows.filter((r) => r.tv !== null).length} of ${rows.length} companies with a target`],
           ["Value to create", money(totalTarget - totalCurrent), totalCurrent ? `${(((totalTarget - totalCurrent) / totalCurrent) * 100).toFixed(0)}% uplift` : "—"],
         ].map(([l, v, s]) => (
@@ -53,9 +53,9 @@ export default async function PortfolioPage() {
 
       <Card className="mb-6 p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">Current, projected and target valuation</h2>
+          <h2 className="text-base font-semibold">Point-in-time, projected and target valuation</h2>
           <div className="flex gap-4 text-xs text-ink-soft">
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-ink/70" />Current</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-ink/70" />Point-in-time</span>
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-brand-500" />Projected by plan</span>
             <span className="flex items-center gap-1.5"><span className="h-3 w-0.5 bg-ink" />Target</span>
           </div>
@@ -79,7 +79,7 @@ export default async function PortfolioPage() {
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-sm">
           <thead className="border-b border-line bg-muted/50 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">
-            <tr><th className="px-5 py-3">Company</th><th className="px-4 py-3 text-right">Current</th><th className="px-4 py-3 text-right">Target</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Initiatives</th><th className="px-4 py-3">Assessment</th><th className="px-5 py-3" /></tr>
+            <tr><th className="px-5 py-3">Company</th><th className="px-4 py-3 text-right">Point-in-time</th><th className="px-4 py-3 text-right">Target</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Initiatives</th><th className="px-4 py-3">KPI score</th><th className="px-5 py-3" /></tr>
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
@@ -93,7 +93,7 @@ export default async function PortfolioPage() {
                 <td className="px-5 py-3.5 text-right">
                   <form action={selectCompany}>
                     <input type="hidden" name="companyId" value={r.company.id} />
-                    <input type="hidden" name="next" value="/valuations" />
+                    <input type="hidden" name="next" value="/" />
                     <button className="text-sm font-medium text-brand-700 hover:underline">Open</button>
                   </form>
                 </td>
@@ -102,7 +102,7 @@ export default async function PortfolioPage() {
           </tbody>
         </table>
       </Card>
-      <p className="mt-3 text-xs text-ink-soft">Uses each company&apos;s latest current and target valuation, most recently updated plan and latest assessment. <Link href="/companies" className="underline">Manage companies</Link></p>
+      <p className="mt-3 text-xs text-ink-soft">Uses each company&apos;s latest point-in-time and target valuation, most recently updated plan and current KPI values. <Link href="/companies" className="underline">Manage companies</Link></p>
     </>
   );
 }

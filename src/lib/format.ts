@@ -1,26 +1,45 @@
 export type Unit = "CURRENCY" | "PERCENT" | "NUMBER";
 
-const CURRENCY = "USD";
+export const CURRENCY_SYMBOL = "€";
+const LOCALE = "en-IE"; // € prefix with comma thousands separators: €1,234,567
 
-export function money(v: number | null | undefined, compact = true) {
+const moneyFmt = new Intl.NumberFormat(LOCALE, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const axisFmt = new Intl.NumberFormat(LOCALE, { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 });
+const numFmt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 });
+
+/** Full euro amount with comma separators, e.g. €156,770,000. */
+export function money(v: number | null | undefined) {
   if (v === null || v === undefined || !Number.isFinite(v)) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    notation: compact && Math.abs(v) >= 1e6 ? "compact" : "standard",
-    maximumFractionDigits: compact && Math.abs(v) >= 1e6 ? 2 : 0,
-  }).format(v);
+  return moneyFmt.format(v);
+}
+
+/** Short euro amount for chart axes only, e.g. €150M. */
+export function moneyAxis(v: number) {
+  return axisFmt.format(v);
 }
 
 export function formatKpi(v: number | null | undefined, unit: string) {
   if (v === null || v === undefined || !Number.isFinite(v)) return "—";
   if (unit === "CURRENCY") return money(v);
-  if (unit === "PERCENT") return `${+(v * 100).toFixed(2)}%`;
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(v);
+  if (unit === "PERCENT") return `${numFmt.format(+(v * 100).toFixed(2))}%`;
+  return numFmt.format(v);
 }
 
 export function factor(v: number) {
-  return `×${v.toLocaleString("en-US", { maximumFractionDigits: 4 })}`;
+  return `×${v.toLocaleString(LOCALE, { maximumFractionDigits: 4 })}`;
 }
 
-export const UNIT_LABEL: Record<string, string> = { CURRENCY: "$", PERCENT: "%", NUMBER: "#" };
+/** Number shown inside a currency input: 1234567.5 -> "1,234,567.5". */
+export function groupDigits(v: number | null) {
+  if (v === null || !Number.isFinite(v)) return "";
+  return v.toLocaleString(LOCALE, { maximumFractionDigits: 2 });
+}
+
+/** Parse a typed amount, ignoring €, commas and spaces. Returns null for empty, NaN for invalid. */
+export function parseAmount(s: string): number | null {
+  const t = s.replace(/[€,\s]/g, "");
+  if (t === "" || t === "-") return null;
+  return Number(t);
+}
+
+export const UNIT_LABEL: Record<string, string> = { CURRENCY: CURRENCY_SYMBOL, PERCENT: "%", NUMBER: "#" };

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedDemo } from "./demo";
 
 const prisma = new PrismaClient();
 
@@ -32,7 +33,8 @@ async function main() {
       create: { userId: admin.id, companyId: company.id, role: "ADMIN" },
     });
   }
-  console.log(`Seed checked: ${COMPANIES.length} companies and admin ${ADMIN_EMAIL}`);
+  const demo = await seedDemo(prisma, admin.id);
+  console.log(`Seed checked: ${COMPANIES.length} companies and admin ${ADMIN_EMAIL}${demo ? "; created Demo Inc." : ""}`);
 }
 
 main()

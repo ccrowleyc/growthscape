@@ -1,11 +1,13 @@
 import { db } from "./db";
+import { PILLARS } from "./kpis";
 
-export type CatalogKpi = { code: string; name: string; unit: string };
+export type CatalogKpi = { code: string; name: string; unit: string; pillar: string; currentValue: number | null };
 
-/** Every KPI defined across the company's valuation models, de-duplicated by code. */
+/** The KPIs set up for a company, in pillar order. */
 export async function kpiCatalog(companyId: string): Promise<CatalogKpi[]> {
-  const kpis = await db.modelKpi.findMany({ where: { model: { companyId } }, orderBy: [{ kind: "desc" }, { sortOrder: "asc" }] });
-  const seen = new Map<string, CatalogKpi>();
-  for (const k of kpis) if (!seen.has(k.code)) seen.set(k.code, { code: k.code, name: k.name, unit: k.unit });
-  return [...seen.values()];
+  const kpis = await db.companyKpi.findMany({ where: { companyId }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
+  const order = (p: string) => PILLARS.indexOf(p as (typeof PILLARS)[number]);
+  return kpis
+    .sort((a, b) => order(a.pillar) - order(b.pillar) || a.sortOrder - b.sortOrder)
+    .map(({ code, name, unit, pillar, currentValue }) => ({ code, name, unit, pillar, currentValue }));
 }

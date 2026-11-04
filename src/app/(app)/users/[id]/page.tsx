@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { ActionForm } from "@/components/ActionForm";
 import { AccessFields } from "@/components/AccessFields";
 import { Button, Card, PageHeader } from "@/components/ui";
-import { deleteUser, updateAccess } from "../../actions";
+import { deleteUser, updateAccess } from "../actions";
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
