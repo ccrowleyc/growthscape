@@ -15,7 +15,7 @@ export default async function PlansPage() {
       <PageHeader title="Value Creation Plans" description="Check that your strategic initiatives add up to the target valuation." actions={plans.length > 0 && <LinkButton href="/plans/new">New plan</LinkButton>} />
       {plans.length === 0 ? (
         targets === 0 ? (
-          <EmptyState title="Create a target valuation first" body="A plan starts from a current valuation and works towards a target valuation." action={<LinkButton href="/valuations/new">New valuation</LinkButton>} />
+          <EmptyState title="Create a target valuation first" body="A plan starts from a point-in-time valuation and works towards a target valuation." action={<LinkButton href="/valuations/new">New valuation</LinkButton>} />
         ) : (
           <EmptyState title="No plans yet" body="Pick a starting valuation and a target, add your strategic initiatives, and see whether they get you there." action={<LinkButton href="/plans/new">Create a plan</LinkButton>} />
         )

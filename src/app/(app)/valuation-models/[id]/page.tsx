@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireCompany } from "@/lib/auth";
 import { Button, Card, LinkButton, PageHeader } from "@/components/ui";
-import type { KpiDraft } from "@/lib/model-templates";
+import type { ModelKpiDraft } from "@/lib/model-templates";
+import { kpiCatalog } from "@/lib/kpi-catalog";
 import { ModelEditor } from "../ModelEditor";
 import { deleteModel } from "../actions";
 
@@ -15,6 +16,7 @@ export default async function ModelPage({ params, searchParams }: { params: Prom
     include: { kpis: { orderBy: { sortOrder: "asc" } }, valuations: { orderBy: { asOf: "asc" } } },
   });
   if (!model) notFound();
+  const companyKpis = await kpiCatalog(company.id);
 
   return (
     <>
@@ -26,7 +28,9 @@ export default async function ModelPage({ params, searchParams }: { params: Prom
       {saved && <p className="mb-6 rounded-md bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">Model saved.</p>}
       <ModelEditor
         key={model.updatedAt.toISOString()}
-        initial={{ id: model.id, name: model.name, description: model.description, formula: model.formula, kpis: model.kpis.map((k) => ({ code: k.code, name: k.name, kind: k.kind as KpiDraft["kind"], unit: k.unit as KpiDraft["unit"] })) }}
+        companyKpis={companyKpis}
+        companyId={company.id}
+        initial={{ id: model.id, name: model.name, description: model.description, formula: model.formula, kpis: model.kpis.map((k) => ({ code: k.code, kind: k.kind as ModelKpiDraft["kind"] })) }}
       />
       <Card className="mt-6 p-6">
         <h2 className="mb-3 text-base font-semibold">Valuations using this model</h2>

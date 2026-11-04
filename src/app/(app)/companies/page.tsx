@@ -41,7 +41,7 @@ export default async function CompaniesPage() {
         {isAdmin && (
           <Card className="h-fit p-6">
             <h2 className="mb-1 text-base font-semibold">New company</h2>
-            <p className="mb-5 text-sm text-ink-soft">You&apos;ll be its administrator, then you can add its initiative owners.</p>
+            <p className="mb-5 text-sm text-ink-soft">You&apos;ll be its administrator, then you can set up its KPIs.</p>
             <ActionForm action={createCompany} submit="Create company">
               <Field label="Company name"><Input name="name" placeholder="e.g. Northwind Ltd." required /></Field>
               <label className="flex items-center gap-2 text-sm text-ink-soft">

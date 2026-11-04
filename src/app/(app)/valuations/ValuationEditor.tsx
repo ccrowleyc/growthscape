@@ -11,14 +11,15 @@ import { saveValuation } from "./actions";
 type Model = { id: string; name: string; formula: string; kpis: KpiMeta[] };
 type Initial = { id: string; name: string; kind: string; asOf: string; modelId: string; notes: string | null; inputs: InputMap };
 
-export function ValuationEditor({ models, initial, defaultModelId }: { models: Model[]; initial?: Initial; defaultModelId?: string }) {
+export function ValuationEditor({ models, initial, defaultModelId, currentValues }: { models: Model[]; initial?: Initial; defaultModelId?: string; currentValues: InputMap }) {
   const [state, action, pending] = useActionState(saveValuation, undefined);
   const [name, setName] = useState(initial?.name ?? "");
   const [kind, setKind] = useState(initial?.kind ?? "CURRENT");
   const [asOf, setAsOf] = useState(initial?.asOf ?? new Date().toISOString().slice(0, 10));
   const [modelId, setModelId] = useState(initial?.modelId ?? defaultModelId ?? models[0]?.id ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [inputs, setInputs] = useState<InputMap>(initial?.inputs ?? {});
+  // New point-in-time valuations start from the company's current KPI values
+  const [inputs, setInputs] = useState<InputMap>(initial?.inputs ?? currentValues);
   const model = models.find((m) => m.id === modelId);
   const result = useMemo(() => (model ? compute(model.formula, inputs) : null), [model, inputs]);
 
@@ -38,7 +39,7 @@ export function ValuationEditor({ models, initial, defaultModelId }: { models: M
             </Field>
             <Field label="Type">
               <div className="grid grid-cols-2 rounded-md border border-line p-0.5 text-sm">
-                {[["CURRENT", "Current"], ["TARGET", "Target"]].map(([v, l]) => (
+                {[["CURRENT", "Point-in-time"], ["TARGET", "Target"]].map(([v, l]) => (
                   <button type="button" key={v} onClick={() => setKind(v)} className={`rounded px-3 py-1.5 font-medium ${kind === v ? "bg-brand-600 text-white" : "text-ink-soft hover:bg-muted"}`}>{l}</button>
                 ))}
               </div>
@@ -48,7 +49,12 @@ export function ValuationEditor({ models, initial, defaultModelId }: { models: M
         </Card>
         {model && (
           <Card className="p-6">
-            <h2 className="mb-5 text-base font-semibold">{kind === "TARGET" ? "Target KPIs" : "Input KPIs"}</h2>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">{kind === "TARGET" ? "Target KPIs" : "Input KPIs"}</h2>
+              <Button type="button" variant="ghost" onClick={() => setInputs({ ...inputs, ...Object.fromEntries(model.kpis.map((k) => [k.code, currentValues[k.code] ?? null])) })}>
+                Fill with current KPI values
+              </Button>
+            </div>
             <KpiInputs kpis={model.kpis} values={inputs} onChange={setInputs} />
           </Card>
         )}

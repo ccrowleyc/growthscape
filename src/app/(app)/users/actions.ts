@@ -40,7 +40,7 @@ export async function createUser(_: ActionState, form: FormData): Promise<Action
       memberships: { create: ids.map((companyId) => ({ companyId, role })) },
     },
   });
-  revalidatePath("/admin");
+  revalidatePath("/users");
   return { ok: `${name} can now sign in with ${email}.` };
 }
 
@@ -56,7 +56,7 @@ export async function updateAccess(_: ActionState, form: FormData): Promise<Acti
     db.membership.deleteMany({ where: { userId, companyId: { in: [...grantable] } } }),
     ...ids.map((companyId) => db.membership.create({ data: { userId, companyId, role } })),
   ]);
-  revalidatePath("/admin");
+  revalidatePath("/users");
   return { ok: "Access updated." };
 }
 
@@ -66,6 +66,6 @@ export async function deleteUser(form: FormData) {
   const target = await db.user.findUnique({ where: { id: userId } });
   if (!target || target.id === me.id || target.createdById !== me.id) return;
   await db.user.delete({ where: { id: userId } });
-  revalidatePath("/admin");
-  redirect("/admin");
+  revalidatePath("/users");
+  redirect("/users");
 }

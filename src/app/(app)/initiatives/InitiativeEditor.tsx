@@ -8,6 +8,8 @@ import { variance } from "@/lib/plan";
 import { elapsed, label, pickerQuarters, quarterOf, range } from "@/lib/quarters";
 import type { CatalogKpi } from "@/lib/kpi-catalog";
 import { saveInitiative } from "./actions";
+import { UnitInput } from "@/components/UnitInput";
+import { AmountInput } from "@/components/AmountInput";
 
 type Cell = { planned: number | null; actual: number | null };
 type Initial = {
@@ -18,23 +20,6 @@ type Initial = {
 
 const SELECT = "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm";
 const key = (q: string, c: string) => `${q}|${c}`;
-
-function NumCell({ value, unit, onChange, tone }: { value: number | null; unit: string; onChange: (v: number | null) => void; tone?: string }) {
-  const pct = unit === "PERCENT";
-  const shown = value === null ? "" : pct ? +(value * 100).toFixed(6) : value;
-  return (
-    <div className={`flex items-center rounded border bg-surface ${tone ?? "border-line"}`}>
-      <input
-        type="number"
-        step="any"
-        value={shown}
-        onChange={(e) => onChange(e.target.value === "" ? null : pct ? Number(e.target.value) / 100 : Number(e.target.value))}
-        className="w-full min-w-0 bg-transparent px-2 py-1.5 text-right text-sm tabular-nums focus:outline-none"
-      />
-      {pct && <span className="pr-2 text-xs text-ink-faint">pts</span>}
-    </div>
-  );
-}
 
 export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: string; name: string; title: string | null }[]; kpis: CatalogKpi[]; initial?: Initial }) {
   const [state, action, pending] = useActionState(saveInitiative, undefined);
@@ -57,18 +42,6 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
   const selected = kpis.filter((k) => codes.includes(k.code));
   const setCell = (q: string, c: string, patch: Partial<Cell>) =>
     setCells((cs) => ({ ...cs, [key(q, c)]: { ...(cs[key(q, c)] ?? { planned: null, actual: null }), ...patch } }));
-
-  const totals = selected.map((k) => {
-    const list = period.map((q) => cells[key(q, k.code)]);
-    return {
-      code: k.code,
-      planned: list.reduce((s, c) => s + (c?.planned ?? 0), 0),
-      plannedToDate: period.reduce((s, q) => s + (elapsed(q) ? cells[key(q, k.code)]?.planned ?? 0 : 0), 0),
-      actualToDate: period.some((q) => elapsed(q) && cells[key(q, k.code)]?.actual != null)
-        ? period.reduce((s, q) => s + (elapsed(q) ? cells[key(q, k.code)]?.actual ?? 0 : 0), 0)
-        : null,
-    };
-  });
 
   const payload = JSON.stringify({
     id: initial?.id, name, description, ownerId, budget, startQuarter: start, endQuarter: end, kpiCodes: codes,
@@ -93,8 +66,8 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
           </Field>
           <Field label="Description"><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" /></Field>
           <Field label="Budget (optional)">
-            <div className="flex rounded-md border border-line bg-surface"><span className="grid place-items-center pl-3 text-sm text-ink-faint">$</span>
-              <input type="number" step="any" value={budget ?? ""} onChange={(e) => setBudget(e.target.value === "" ? null : Number(e.target.value))} className="w-full bg-transparent px-3 py-2 text-sm focus:outline-none" />
+            <div className="flex rounded-md border border-line bg-surface"><span className="grid place-items-center pl-3 text-sm text-ink-faint">€</span>
+              <AmountInput value={budget} onChange={setBudget} className="px-3 py-2 text-sm" ariaLabel="Budget" />
             </div>
           </Field>
           <Field label="Start quarter">
@@ -108,9 +81,9 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
 
       <Card className="p-6">
         <h2 className="text-base font-semibold">KPIs impacted</h2>
-        <p className="mb-4 mt-0.5 text-sm text-ink-soft">KPIs come from your valuation models.</p>
+        <p className="mb-4 mt-0.5 text-sm text-ink-soft">Choose from the KPIs set up for this company.</p>
         {kpis.length === 0 ? (
-          <p className="text-sm text-ink-soft">No KPIs yet. <Link href="/valuation-models/new" className="text-brand-700 underline">Create a valuation model</Link> first.</p>
+          <p className="text-sm text-ink-soft">No KPIs yet. Set up the company&apos;s KPIs under <Link href="/companies" className="text-brand-700 underline">Companies</Link> first.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {kpis.map((k) => {
@@ -133,11 +106,11 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
             Enter the change each quarter adds to the KPI. Use percentage points (pts) for percent KPIs. Actuals open once a quarter has ended.
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] border-separate border-spacing-0 text-sm">
+            <table className="w-full border-separate border-spacing-0 text-sm">
               <thead>
                 <tr className="text-left text-xs font-medium uppercase tracking-wide text-ink-soft">
-                  <th className="sticky left-0 bg-surface py-2 pr-4">Quarter</th>
-                  {selected.map((k) => <th key={k.code} className="min-w-40 px-2 py-2 text-right">{k.name}</th>)}
+                  <th className="sticky left-0 w-28 bg-surface py-2 pr-4">Quarter</th>
+                  {selected.map((k) => <th key={k.code} className="px-3 py-2 text-center">{k.name}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +118,7 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
                   const past = elapsed(q);
                   return (
                     <tr key={q} className="align-top">
-                      <td className="sticky left-0 border-t border-line bg-surface py-2.5 pr-4">
+                      <td className="sticky left-0 border-t border-line bg-surface py-2 pr-4">
                         <p className="font-medium">{label(q)}</p>
                         <p className="text-xs text-ink-faint">{past ? "Ended" : q === now ? "Current" : "Upcoming"}</p>
                       </td>
@@ -154,13 +127,15 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
                         const v = variance(c.planned, c.actual);
                         const tone = v?.significant ? (v.behind ? "border-red-300 bg-red-50" : "border-emerald-300 bg-emerald-50") : undefined;
                         return (
-                          <td key={k.code} className="space-y-1.5 border-t border-line px-2 py-2.5">
-                            <div className="flex items-center gap-2"><span className="w-12 text-[11px] text-ink-faint">Plan</span><NumCell value={c.planned} unit={k.unit} onChange={(n) => setCell(q, k.code, { planned: n })} /></div>
+                          <td key={k.code} className="border-t border-line px-3 py-2">
+                            <div className="mx-auto w-40 space-y-1">
+                            <div className="flex items-center gap-1.5"><span className="w-10 shrink-0 text-[11px] text-ink-faint">Plan</span><UnitInput size="sm" align="center" pctSuffix="pts" value={c.planned} unit={k.unit} ariaLabel={`${k.name} plan ${q}`} onChange={(n) => setCell(q, k.code, { planned: n })} /></div>
                             {past && (
-                              <div className="flex items-center gap-2"><span className="w-12 text-[11px] text-ink-faint">Actual</span><NumCell value={c.actual} unit={k.unit} tone={tone} onChange={(n) => setCell(q, k.code, { actual: n })} /></div>
+                              <div className="flex items-center gap-1.5"><span className="w-10 shrink-0 text-[11px] text-ink-faint">Actual</span><UnitInput size="sm" align="center" pctSuffix="pts" value={c.actual} unit={k.unit} tone={tone} ariaLabel={`${k.name} actual ${q}`} onChange={(n) => setCell(q, k.code, { actual: n })} /></div>
                             )}
+                            </div>
                             {v?.significant && (
-                              <p className={`text-right text-[11px] font-medium ${v.behind ? "text-red-600" : "text-emerald-600"}`}>
+                              <p className={`mt-1 text-center text-[11px] font-medium ${v.behind ? "text-red-600" : "text-emerald-600"}`}>
                                 {v.behind ? "Behind" : "Ahead of"} plan by {formatKpi(Math.abs(v.diff), k.unit)}
                               </p>
                             )}
@@ -171,25 +146,6 @@ export function InitiativeEditor({ owners, kpis, initial }: { owners: { id: stri
                   );
                 })}
               </tbody>
-              <tfoot>
-                <tr className="text-sm">
-                  <td className="sticky left-0 border-t-2 border-line bg-surface py-3 pr-4 font-semibold">Total</td>
-                  {totals.map((t) => {
-                    const k = selected.find((s) => s.code === t.code)!;
-                    const v = variance(t.plannedToDate || null, t.actualToDate);
-                    return (
-                      <td key={t.code} className="border-t-2 border-line px-2 py-3 text-right">
-                        <p className="font-semibold tabular-nums">{formatKpi(t.planned, k.unit)}</p>
-                        {t.actualToDate !== null && (
-                          <p className={`text-xs ${v?.behind ? "text-red-600" : "text-emerald-600"}`}>
-                            To date: {formatKpi(t.actualToDate, k.unit)} vs {formatKpi(t.plannedToDate, k.unit)} plan
-                          </p>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tfoot>
             </table>
           </div>
         </Card>

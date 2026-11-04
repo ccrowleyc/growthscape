@@ -30,7 +30,7 @@ model Company {
   valuations  Valuation[]
   initiatives StrategicInitiative[]
   plans       ValueCreationPlan[]
-  assessments Assessment[]
+  kpis        CompanyKpi[]
   createdAt   DateTime     @default(now())
 }
 
@@ -182,30 +182,38 @@ model PlanAdjustment {
   plan    ValueCreationPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
-model Assessment {
-  id        String          @id @default(cuid())
-  companyId String
-  name      String
-  asOf      DateTime
-  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  kpis      AssessmentKpi[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+/// A KPI chosen for the company during setup. unit: CURRENCY | PERCENT | NUMBER. direction: HIGHER | LOWER.
+/// source: MANUAL | CSV | HUBSPOT | SALESFORCE | XERO | QUICKBOOKS | STRIPE. currentValue is the latest known value.
+model CompanyKpi {
+  id             String        @id @default(cuid())
+  companyId      String
+  pillar         String
+  code           String
+  name           String
+  unit           String        @default("NUMBER")
+  direction      String        @default("HIGHER")
+  target         Float?
+  currentValue   Float?
+  currentAsOf    DateTime?
+  source         String        @default("MANUAL")
+  sourceDetail   String?
+  sortOrder      Int           @default(0)
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  snapshots      KpiSnapshot[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([companyId, code])
 }
 
-/// direction: HIGHER | LOWER (which way is better). source: MANUAL | CSV | a named system.
-model AssessmentKpi {
-  id           String     @id @default(cuid())
-  assessmentId String
-  pillar       String
-  name         String
-  unit         String     @default("NUMBER")
-  direction    String     @default("HIGHER")
-  target       Float?
-  actual       Float?
-  prior        Float?
-  source       String     @default("MANUAL")
-  sourceDetail String?
-  sortOrder    Int        @default(0)
-  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+/// Month-end value of a KPI. month is "YYYY-MM".
+model KpiSnapshot {
+  id        String     @id @default(cuid())
+  kpiId     String
+  month     String
+  value     Float
+  kpi       CompanyKpi @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([kpiId, month])
 }

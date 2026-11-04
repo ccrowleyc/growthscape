@@ -1,4 +1,4 @@
-import type { Rag } from "@/lib/assessment";
+import type { Rag } from "@/lib/kpis";
 
 export const RAG_CLASS: Record<Rag, { bar: string; text: string; chip: string; label: string }> = {
   green: { bar: "bg-emerald-500", text: "text-emerald-700", chip: "bg-emerald-50 text-emerald-700", label: "On target" },

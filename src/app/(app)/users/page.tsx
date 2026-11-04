@@ -18,7 +18,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <PageHeader title="Administration" description="Create users and choose which companies they can access." />
+      <PageHeader title="Users" description="Create users and choose which companies they can access." />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="h-fit overflow-hidden lg:col-span-2">
           <table className="w-full text-sm">
@@ -38,7 +38,7 @@ export default async function AdminPage() {
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    {u.id !== me.id && <Link href={`/admin/users/${u.id}`} className="text-sm font-medium text-brand-700 hover:underline">Edit</Link>}
+                    {u.id !== me.id && <Link href={`/users/${u.id}`} className="text-sm font-medium text-brand-700 hover:underline">Edit</Link>}
                   </td>
                 </tr>
               ))}
